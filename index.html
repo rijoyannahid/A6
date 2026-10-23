@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#167b3e">
+  <meta name="description" content="Choose a tree, support greener communities, and help grow a healthier planet with Green Earth.">
+  <title>Green Earth | Plant a Tree, Grow a Future</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+
+  <header class="site-header" id="top">
+    <div class="nav-shell">
+      <a class="brand" href="#top" aria-label="Green Earth home">Green Earth</a>
+
+      <button class="menu-toggle" id="menu-toggle" type="button" aria-label="Open navigation menu" aria-controls="primary-navigation" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+
+      <nav class="primary-navigation" id="primary-navigation" aria-label="Main navigation">
+        <a href="#about">About</a>
+        <a href="#trees">Gallery</a>
+        <a href="#donate">Plant a Tree</a>
+      </nav>
+
+      <a class="button button-yellow nav-cta" href="#donate">Plant a Tree</a>
+    </div>
+  </header>
+
+  <main id="main-content">
+    <section class="hero" aria-labelledby="hero-title">
+      <img class="hero-leaf hero-leaf-left" src="assets/hero-leaf1.png" alt="" aria-hidden="true">
+      <img class="hero-leaf hero-leaf-right" src="assets/hero-leaf2.png" alt="" aria-hidden="true">
+      <div class="hero-content">
+        <p class="eyebrow">Small actions. A greener tomorrow.</p>
+        <h1 id="hero-title">Plant a Tree, Grow a Future</h1>
+        <p class="hero-copy">Join our mission to plant 1 million trees and make the Earth greener for future generations.</p>
+        <a class="button button-yellow" href="#trees">Get Involved</a>
+      </div>
+    </section>
+
+    <section class="tree-section section-pad" id="trees" aria-labelledby="trees-title">
+      <div class="section-container">
+        <div class="section-heading">
+          <p class="eyebrow">Find the right tree for your space</p>
+          <h2 id="trees-title">Choose Your Trees</h2>
+          <p>Explore the collection and help put down roots for a healthier planet.</p>
+        </div>
+
+        <div class="catalog-layout">
+          <aside class="categories-panel" aria-labelledby="categories-title">
+            <h3 id="categories-title">Categories</h3>
+            <div class="category-list" id="category-list">
+              <div class="category-loading" role="status"><span class="spinner spinner-small" aria-hidden="true"></span><span>Loading categories…</span></div>
+            </div>
+            <button class="text-button retry-categories" id="retry-categories" type="button" hidden>Try loading categories again</button>
+          </aside>
+
+          <div class="plants-area">
+            <div class="catalog-toolbar">
+              <p id="catalog-status" class="catalog-status" aria-live="polite">Loading trees…</p>
+            </div>
+            <div class="plant-grid" id="plant-grid" aria-busy="true">
+              <div class="loading-panel" role="status">
+                <span class="spinner" aria-hidden="true"></span>
+                <span>Growing the collection…</span>
+              </div>
+            </div>
+          </div>
+
+          <aside class="cart-panel" aria-labelledby="cart-title">
+            <div class="cart-heading-row">
+              <h3 id="cart-title">Your Cart</h3>
+              <span class="cart-count" id="cart-count" aria-label="Items in cart">0</span>
+            </div>
+            <ul class="cart-list" id="cart-list" aria-live="polite">
+              <li class="cart-empty">Your cart is waiting for its first tree.</li>
+            </ul>
+            <div class="cart-total">
+              <span>Total:</span>
+              <strong id="cart-total">৳0</strong>
+            </div>
+            <a class="button button-green cart-checkout" href="#donate">Plant a Tree</a>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <section class="about-section section-pad" id="about" aria-labelledby="about-title">
+      <div class="section-container">
+        <div class="section-heading">
+          <p class="eyebrow">Rooted in community</p>
+          <h2 id="about-title">About the Campaign</h2>
+        </div>
+        <div class="about-layout">
+          <div class="about-image-wrap">
+            <img src="assets/about.png" alt="A young green plant growing toward the light" loading="lazy">
+            <div class="about-image-note"><span aria-hidden="true">✦</span> Every tree helps a future take root.</div>
+          </div>
+          <div class="about-copy">
+            <h3>A greener future starts with one tree.</h3>
+            <p>Green Earth is a tree-planting initiative dedicated to restoring natural spaces and helping communities respond to climate change. By choosing a tree, you help support healthier habitats, cleaner air, and a more resilient environment for future generations.</p>
+            <ul class="benefit-list">
+              <li><span class="benefit-icon" aria-hidden="true">✓</span><span>Restore natural habitats and support local wildlife.</span></li>
+              <li><span class="benefit-icon" aria-hidden="true">✓</span><span>Improve air quality and add more green spaces.</span></li>
+              <li><span class="benefit-icon" aria-hidden="true">✓</span><span>Encourage community-led environmental action.</span></li>
+            </ul>
+            <a class="inline-link" href="#trees">Explore the tree collection <span aria-hidden="true">→</span></a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="impact-section section-pad" aria-labelledby="impact-title">
+      <div class="section-container">
+        <div class="section-heading">
+          <p class="eyebrow">Growing change together</p>
+          <h2 id="impact-title">Our Impact</h2>
+        </div>
+        <div class="impact-grid">
+          <article class="impact-card">
+            <span class="impact-symbol" aria-hidden="true">♧</span>
+            <p class="impact-number">500K+</p>
+            <h3>Trees Planted</h3>
+            <p class="impact-description">More roots in the ground, more life in our landscapes.</p>
+          </article>
+          <article class="impact-card">
+            <span class="impact-symbol" aria-hidden="true">⌂</span>
+            <p class="impact-number">120+</p>
+            <h3>Communities Involved</h3>
+            <p class="impact-description">Local people working together for lasting change.</p>
+          </article>
+          <article class="impact-card">
+            <span class="impact-symbol" aria-hidden="true">◎</span>
+            <p class="impact-number">30+</p>
+            <h3>Countries Reached</h3>
+            <p class="impact-description">A shared mission that reaches beyond borders.</p>
+          </article>
+        </div>
+        <p class="impact-footnote">Campaign figures shown in this design are illustrative campaign milestones.</p>
+      </div>
+    </section>
+
+    <section class="donate-section section-pad" id="donate" aria-labelledby="donate-title">
+      <div class="donate-decoration" aria-hidden="true">✳</div>
+      <div class="donate-container">
+        <div class="section-heading section-heading-light">
+          <p class="eyebrow">Be part of the change</p>
+          <h2 id="donate-title">Plant a Tree Today</h2>
+          <p>Your pledge can help grow a greener tomorrow.</p>
+        </div>
+        <form class="pledge-form" id="pledge-form">
+          <label class="sr-only" for="donor-name">Your name</label>
+          <input id="donor-name" name="name" type="text" placeholder="Your Name" autocomplete="name" required maxlength="80">
+
+          <label class="sr-only" for="donor-email">Your email address</label>
+          <input id="donor-email" name="email" type="email" placeholder="Your Email Address" autocomplete="email" required maxlength="120">
+
+          <label class="sr-only" for="tree-quantity">Number of trees</label>
+          <select id="tree-quantity" name="trees" required>
+            <option value="" disabled selected>Number of Trees</option>
+            <option value="1">1 Tree</option>
+            <option value="2">2 Trees</option>
+            <option value="3">3 Trees</option>
+            <option value="5">5 Trees</option>
+            <option value="10">10 Trees</option>
+            <option value="20">20 Trees</option>
+            <option value="50">50 Trees</option>
+          </select>
+
+          <button class="button button-yellow pledge-submit" type="submit">Donate Now</button>
+          <p class="form-note">This demo records your pledge in the page only. No payment is collected.</p>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <p>© <span id="copyright-year">2026</span> Green Earth. All Rights Reserved.</p>
+    <a href="#top">Back to top ↑</a>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <div class="modal-backdrop" id="plant-modal" hidden>
+    <section class="plant-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <button class="modal-close" id="modal-close" type="button" aria-label="Close tree details">×</button>
+      <div class="modal-body" id="modal-body">
+        <span class="spinner" aria-hidden="true"></span>
+      </div>
+    </section>
+  </div>
+
+
+
+</body>
+</html>
