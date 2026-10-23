@@ -197,7 +197,1384 @@
     </section>
   </div>
 
+<script>
 
+    // ============================================
+// GREEN EARTH - COMPLETE VANILLA JAVASCRIPT
+// HTML + CSS + JavaScript
+// API: Programming Hero Plant API
+// ============================================
+
+document.addEventListener("DOMContentLoaded", function () {
+  "use strict";
+
+  // ==========================================
+  // 1. API URLS
+  // ==========================================
+
+  const API_BASE = "https://openapi.programming-hero.com/api";
+
+  const ALL_PLANTS_API = `${API_BASE}/plants`;
+  const CATEGORIES_API = `${API_BASE}/categories`;
+
+  const CATEGORY_API = (id) =>
+    `${API_BASE}/category/${encodeURIComponent(id)}`;
+
+  const PLANT_DETAILS_API = (id) =>
+    `${API_BASE}/plant/${encodeURIComponent(id)}`;
+
+  const FALLBACK_IMAGE = "assets/about.png";
+
+
+  // ==========================================
+  // 2. HTML ELEMENTS
+  // ==========================================
+
+  const categoryList = document.getElementById("category-list");
+  const retryCategories = document.getElementById("retry-categories");
+
+  const plantGrid = document.getElementById("plant-grid");
+  const catalogStatus = document.getElementById("catalog-status");
+
+  const cartList = document.getElementById("cart-list");
+  const cartCount = document.getElementById("cart-count");
+  const cartTotal = document.getElementById("cart-total");
+
+  const menuToggle = document.getElementById("menu-toggle");
+  const navigation = document.getElementById("primary-navigation");
+
+  const modal = document.getElementById("plant-modal");
+  const modalBody = document.getElementById("modal-body");
+  const modalClose = document.getElementById("modal-close");
+
+  const pledgeForm = document.getElementById("pledge-form");
+  const copyrightYear = document.getElementById("copyright-year");
+
+  const toast = document.getElementById("toast");
+
+
+  // ==========================================
+  // 3. GLOBAL VARIABLES
+  // ==========================================
+
+  let categories = [];
+
+  // Currently displayed plants
+  let visiblePlants = [];
+
+  // Save loaded plants by ID for modal/cart access
+  const plantCache = new Map();
+
+  // Cart structure:
+  // Map(plantId => { ...plant, quantity: 1 })
+  const cart = new Map();
+
+  let selectedCategoryId = null;
+  let selectedCategoryName = "All Trees";
+
+  let toastTimer = null;
+  let plantRequestNumber = 0;
+  let modalRequestNumber = 0;
+
+  let previousFocusedElement = null;
+  let activeModalPlant = null;
+
+
+  // ==========================================
+  // 4. BASIC HELPER FUNCTIONS
+  // ==========================================
+
+  function escapeHTML(value) {
+    return String(value ?? "").replace(/[&<>"']/g, function (character) {
+      const entities = {
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      };
+
+      return entities[character];
+    });
+  }
+
+
+  // Convert string, number or category object into readable text
+  function getText(value) {
+    if (
+      typeof value === "string" ||
+      typeof value === "number"
+    ) {
+      return String(value).trim();
+    }
+
+    if (value && typeof value === "object") {
+      return String(
+        value.category_name ??
+        value.name ??
+        value.title ??
+        value.label ??
+        ""
+      ).trim();
+    }
+
+    return "";
+  }
+
+
+  // Convert API price to a valid number
+  function parsePrice(value) {
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return Math.max(0, value);
+    }
+
+    const price = Number.parseFloat(
+      String(value ?? "").replace(/[^\d.-]/g, "")
+    );
+
+    return Number.isFinite(price) ? Math.max(0, price) : 0;
+  }
+
+
+  // Display prices in Bangladeshi Taka
+  function formatMoney(amount) {
+    return `৳${Math.round(parsePrice(amount)).toLocaleString("en-US")}`;
+  }
+
+
+  // Read an ID consistently as a string
+  function getId(value) {
+    if (value === null || value === undefined || value === "") {
+      return "";
+    }
+
+    return String(value);
+  }
+
+
+  // Use a local placeholder if the API does not provide an image
+  function getImageURL(image) {
+    const imageValue = getText(image);
+
+    if (!imageValue) {
+      return FALLBACK_IMAGE;
+    }
+
+    if (imageValue.startsWith("assets/")) {
+      return imageValue;
+    }
+
+    try {
+      const url = new URL(imageValue, API_BASE);
+
+      if (url.protocol === "https:" || url.protocol === "http:") {
+        return url.href;
+      }
+    } catch (error) {
+      console.warn("Invalid plant image URL:", imageValue);
+    }
+
+    return FALLBACK_IMAGE;
+  }
+
+
+  // ==========================================
+  // 5. API REQUEST FUNCTION
+  // ==========================================
+
+  async function fetchAPI(url) {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Accept: "application/json"
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `API request failed. HTTP status: ${response.status}`
+      );
+    }
+
+    let result;
+
+    try {
+      result = await response.json();
+    } catch (error) {
+      throw new Error("The API returned invalid JSON.");
+    }
+
+    if (result && result.status === false) {
+      throw new Error(
+        result.message || "The API request was unsuccessful."
+      );
+    }
+
+    return result;
+  }
+
+
+  // ==========================================
+  // 6. EXTRACT ARRAYS FROM API RESPONSE
+  // ==========================================
+
+  // Supports responses such as:
+  // { categories: [...] }
+  // { data: [...] }
+  // { data: { categories: [...] } }
+  // { plants: [...] }
+
+  function extractArray(response, possibleKeys) {
+    if (Array.isArray(response)) {
+      return response;
+    }
+
+    if (!response || typeof response !== "object") {
+      return null;
+    }
+
+    for (const key of possibleKeys) {
+      if (Array.isArray(response[key])) {
+        return response[key];
+      }
+    }
+
+    const wrapperKeys = [
+      "data",
+      "result",
+      "results",
+      "response"
+    ];
+
+    for (const key of wrapperKeys) {
+      const nested = response[key];
+
+      if (nested && typeof nested === "object") {
+        const result = extractArray(nested, possibleKeys);
+
+        if (result !== null) {
+          return result;
+        }
+      }
+    }
+
+    return null;
+  }
+
+
+  // Find one plant object in different API response formats
+  function extractPlantObject(response) {
+    if (!response || typeof response !== "object") {
+      return null;
+    }
+
+    const looksLikePlant = (object) => {
+      return (
+        object &&
+        !Array.isArray(object) &&
+        typeof object === "object" &&
+        Boolean(
+          object.name ||
+          object.plant_name ||
+          object.plant_id ||
+          object.image ||
+          object.image_url
+        )
+      );
+    };
+
+    if (looksLikePlant(response)) {
+      return response;
+    }
+
+    const possibleKeys = [
+      "plant",
+      "plants",
+      "data",
+      "result",
+      "details"
+    ];
+
+    for (const key of possibleKeys) {
+      const value = response[key];
+
+      if (looksLikePlant(value)) {
+        return value;
+      }
+
+      if (Array.isArray(value)) {
+        const plant = value.find(looksLikePlant);
+
+        if (plant) {
+          return plant;
+        }
+      }
+
+      if (value && typeof value === "object") {
+        const plant = extractPlantObject(value);
+
+        if (plant) {
+          return plant;
+        }
+      }
+    }
+
+    return null;
+  }
+
+
+  // ==========================================
+  // 7. NORMALIZE CATEGORY DATA
+  // ==========================================
+
+  function normalizeCategory(category, index) {
+    const id = getId(
+      category.id ??
+      category.category_id ??
+      category._id ??
+      category.categoryId
+    );
+
+    const name = getText(
+      category.category_name ??
+      category.name ??
+      category.title ??
+      category.category
+    );
+
+    if (!name) {
+      return null;
+    }
+
+    return {
+      id: id || `category-${index}`,
+      name: name
+    };
+  }
+
+
+  // ==========================================
+  // 8. NORMALIZE PLANT DATA
+  // ==========================================
+
+  function normalizePlant(plant, index) {
+    if (!plant || typeof plant !== "object") {
+      return null;
+    }
+
+    const name = getText(
+      plant.name ??
+      plant.plant_name ??
+      plant.common_name ??
+      plant.tree_name ??
+      plant.title
+    );
+
+    if (!name) {
+      return null;
+    }
+
+    const id = getId(
+      plant.id ??
+      plant.plant_id ??
+      plant._id ??
+      plant.plantId
+    );
+
+    const category = getText(
+      plant.category ??
+      plant.category_name ??
+      plant.categoryName ??
+      plant.type
+    );
+
+    const image = getText(
+      plant.image ??
+      plant.image_url ??
+      plant.imageUrl ??
+      plant.img ??
+      plant.photo
+    );
+
+    const description = getText(
+      plant.description ??
+      plant.short_description ??
+      plant.shortDescription ??
+      plant.details
+    );
+
+    const scientificName = getText(
+      plant.scientific_name ??
+      plant.scientificName ??
+      plant.latin_name
+    );
+
+    return {
+      id: id || `local-${index}-${name.toLowerCase().replace(/\s+/g, "-")}`,
+
+      name: name,
+
+      image: getImageURL(image),
+
+      description:
+        description ||
+        "Discover this tree and learn how it can contribute to a greener environment.",
+
+      category: category || "Tree",
+
+      price: parsePrice(
+        plant.price ??
+        plant.cost ??
+        plant.amount ??
+        plant.tree_price
+      ),
+
+      scientificName: scientificName,
+
+      // Keep all original API fields for the details modal.
+      original: plant
+    };
+  }
+
+
+  // ==========================================
+  // 9. LOADING SPINNER
+  // ==========================================
+
+  function showLoading(message = "Loading trees...") {
+    plantGrid.setAttribute("aria-busy", "true");
+
+    catalogStatus.textContent = message;
+
+    plantGrid.innerHTML = `
+      <div class="loading-panel" role="status">
+        <span class="spinner" aria-hidden="true"></span>
+        <span>${escapeHTML(message)}</span>
+      </div>
+    `;
+  }
+
+
+  // ==========================================
+  // 10. LOAD TREE CATEGORIES
+  // ==========================================
+
+  async function loadCategories() {
+    categoryList.innerHTML = `
+      <div class="category-loading" role="status">
+        <span class="spinner spinner-small" aria-hidden="true"></span>
+        <span>Loading categories...</span>
+      </div>
+    `;
+
+    retryCategories.hidden = true;
+
+    try {
+      const response = await fetchAPI(CATEGORIES_API);
+
+      const categoryData = extractArray(
+        response,
+        ["categories", "data", "results", "items"]
+      );
+
+      if (categoryData === null) {
+        throw new Error("Categories were not found in the API response.");
+      }
+
+      categories = categoryData
+        .map(normalizeCategory)
+        .filter(Boolean);
+
+      renderCategories();
+
+    } catch (error) {
+      console.error("Category loading error:", error);
+
+      // Keep the All Trees button available.
+      categories = [];
+      renderCategories();
+
+      categoryList.insertAdjacentHTML(
+        "beforeend",
+        `<p class="category-loading">
+          Could not load categories. Check your connection and retry.
+        </p>`
+      );
+
+      retryCategories.hidden = false;
+    }
+  }
+
+
+  // ==========================================
+  // 11. DISPLAY CATEGORY BUTTONS
+  // ==========================================
+
+  function renderCategories() {
+    const allTreesButton = `
+      <button
+        class="category-button ${
+          selectedCategoryId === null ? "is-active" : ""
+        }"
+        type="button"
+        data-category-id=""
+        data-category-name="All Trees"
+        aria-pressed="${selectedCategoryId === null}"
+      >
+        All Trees
+      </button>
+    `;
+
+    const categoryButtons = categories.map((category) => {
+      const active =
+        selectedCategoryId !== null &&
+        String(selectedCategoryId) === String(category.id);
+
+      return `
+        <button
+          class="category-button ${active ? "is-active" : ""}"
+          type="button"
+          data-category-id="${escapeHTML(category.id)}"
+          data-category-name="${escapeHTML(category.name)}"
+          aria-pressed="${active}"
+        >
+          ${escapeHTML(category.name)}
+        </button>
+      `;
+    }).join("");
+
+    categoryList.innerHTML = allTreesButton + categoryButtons;
+  }
+
+
+  // ==========================================
+  // 12. LOAD ALL TREES OR TREES BY CATEGORY
+  // ==========================================
+
+  async function loadPlants(categoryId = null, categoryName = "All Trees") {
+    const requestNumber = ++plantRequestNumber;
+
+    selectedCategoryId =
+      categoryId === null || categoryId === ""
+        ? null
+        : String(categoryId);
+
+    selectedCategoryName = categoryName || "All Trees";
+
+    renderCategories();
+
+    showLoading(`Loading ${selectedCategoryName}...`);
+
+    let url = ALL_PLANTS_API;
+
+    if (selectedCategoryId !== null) {
+      url = CATEGORY_API(selectedCategoryId);
+    }
+
+    try {
+      const response = await fetchAPI(url);
+
+      // Ignore an older request if the user has selected another category.
+      if (requestNumber !== plantRequestNumber) {
+        return;
+      }
+
+      const plantData = extractArray(
+        response,
+        ["plants", "data", "results", "items"]
+      );
+
+      if (plantData === null) {
+        throw new Error("Plants were not found in the API response.");
+      }
+
+      const plants = plantData
+        .map(normalizePlant)
+        .filter(Boolean);
+
+      plants.forEach((plant) => {
+        plantCache.set(String(plant.id), plant);
+      });
+
+      renderPlants(plants);
+
+    } catch (error) {
+      if (requestNumber !== plantRequestNumber) {
+        return;
+      }
+
+      console.error("Plant loading error:", error);
+
+      plantGrid.setAttribute("aria-busy", "false");
+
+      catalogStatus.textContent = "Could not load trees.";
+
+      plantGrid.innerHTML = `
+        <div class="catalog-message">
+          <strong>We couldn't load the trees.</strong>
+
+          <p>
+            Check your internet connection and make sure the API is
+            accessible, then try again.
+          </p>
+
+          <button
+            class="button button-green"
+            type="button"
+            data-action="retry-plants"
+          >
+            Try Again
+          </button>
+        </div>
+      `;
+    }
+  }
+
+
+  // ==========================================
+  // 13. DISPLAY TREE CARDS
+  // ==========================================
+
+  function renderPlants(plants) {
+    visiblePlants = plants;
+
+    plantGrid.setAttribute("aria-busy", "false");
+
+    if (plants.length === 0) {
+      catalogStatus.textContent = `No trees found in ${selectedCategoryName}.`;
+
+      plantGrid.innerHTML = `
+        <div class="catalog-message">
+          <strong>No trees found in this category.</strong>
+
+          <p>
+            Choose another category to discover more trees.
+          </p>
+
+          <button
+            class="button button-green"
+            type="button"
+            data-action="show-all-trees"
+          >
+            Show All Trees
+          </button>
+        </div>
+      `;
+
+      return;
+    }
+
+    catalogStatus.textContent =
+      `Showing ${plants.length} ${
+        plants.length === 1 ? "tree" : "trees"
+      } in ${selectedCategoryName}.`;
+
+    plantGrid.innerHTML = plants.map((plant) => {
+      return `
+        <article class="plant-card">
+
+          <div class="plant-image-wrap">
+            <img
+              class="plant-image"
+              src="${escapeHTML(plant.image)}"
+              alt="${escapeHTML(plant.name)}"
+              loading="lazy"
+              data-fallback="${escapeHTML(FALLBACK_IMAGE)}"
+            >
+          </div>
+
+          <div class="plant-card-content">
+
+            <button
+              class="plant-name"
+              type="button"
+              data-plant-details="${escapeHTML(plant.id)}"
+              aria-label="View details for ${escapeHTML(plant.name)}"
+            >
+              ${escapeHTML(plant.name)}
+            </button>
+
+            <p class="plant-description">
+              ${escapeHTML(plant.description)}
+            </p>
+
+            <div class="plant-meta">
+              <span class="plant-category">
+                ${escapeHTML(plant.category)}
+              </span>
+
+              <span class="plant-price">
+                ${formatMoney(plant.price)}
+              </span>
+            </div>
+
+            <button
+              class="add-to-cart"
+              type="button"
+              data-add-to-cart="${escapeHTML(plant.id)}"
+            >
+              Add to Cart
+            </button>
+
+          </div>
+        </article>
+      `;
+    }).join("");
+
+    attachImageFallbacks(plantGrid);
+  }
+
+
+  // ==========================================
+  // 14. IMAGE ERROR FALLBACK
+  // ==========================================
+
+  function attachImageFallbacks(container) {
+    container.querySelectorAll("img[data-fallback]").forEach((image) => {
+      image.addEventListener("error", function () {
+        const fallback = image.dataset.fallback;
+
+        if (fallback && image.src !== new URL(fallback, document.baseURI).href) {
+          image.src = fallback;
+        }
+
+        image.removeAttribute("data-fallback");
+      }, { once: true });
+    });
+  }
+
+
+  // ==========================================
+  // 15. FIND A PLANT BY ID
+  // ==========================================
+
+  function findPlant(id) {
+    const plantId = String(id);
+
+    const cachedPlant = plantCache.get(plantId);
+
+    if (cachedPlant) {
+      return cachedPlant;
+    }
+
+    const visiblePlant = visiblePlants.find(
+      (plant) => String(plant.id) === plantId
+    );
+
+    if (visiblePlant) {
+      return visiblePlant;
+    }
+
+    const cartPlant = cart.get(plantId);
+
+    return cartPlant || null;
+  }
+
+
+  // ==========================================
+  // 16. TOAST MESSAGE
+  // ==========================================
+
+  function showToast(message) {
+    if (!toast) {
+      console.log(message);
+      return;
+    }
+
+    clearTimeout(toastTimer);
+
+    toast.textContent = message;
+    toast.classList.add("is-visible");
+
+    toastTimer = setTimeout(() => {
+      toast.classList.remove("is-visible");
+    }, 3000);
+  }
+
+
+  // ==========================================
+  // 17. ADD A TREE TO THE CART
+  // ==========================================
+
+  function addToCart(plant) {
+    if (!plant) {
+      showToast("Tree information could not be found.");
+      return;
+    }
+
+    const id = String(plant.id);
+
+    if (cart.has(id)) {
+      const existingItem = cart.get(id);
+
+      existingItem.quantity += 1;
+    } else {
+      cart.set(id, {
+        ...plant,
+        quantity: 1
+      });
+    }
+
+    renderCart();
+
+    showToast(`${plant.name} added to your cart.`);
+  }
+
+
+  // ==========================================
+  // 18. DISPLAY CART ITEMS AND TOTAL
+  // ==========================================
+
+  function renderCart() {
+    const items = Array.from(cart.values());
+
+    const totalQuantity = items.reduce((total, item) => {
+      return total + item.quantity;
+    }, 0);
+
+    const totalPrice = items.reduce((total, item) => {
+      return total + item.price * item.quantity;
+    }, 0);
+
+    cartCount.textContent = String(totalQuantity);
+
+    cartCount.setAttribute(
+      "aria-label",
+      `${totalQuantity} trees in cart`
+    );
+
+    cartTotal.textContent = formatMoney(totalPrice);
+
+    if (items.length === 0) {
+      cartList.innerHTML = `
+        <li class="cart-empty">
+          Your cart is empty. Add a tree to get started!
+        </li>
+      `;
+
+      return;
+    }
+
+    cartList.innerHTML = items.map((item) => {
+      const subtotal = item.price * item.quantity;
+
+      return `
+        <li class="cart-item">
+
+          <div>
+            <span class="cart-item-name">
+              ${escapeHTML(item.name)}
+            </span>
+
+            <span class="cart-item-subtotal">
+              ${formatMoney(item.price)} × ${item.quantity}
+              = ${formatMoney(subtotal)}
+            </span>
+          </div>
+
+          <button
+            class="cart-remove"
+            type="button"
+            data-remove-from-cart="${escapeHTML(item.id)}"
+            aria-label="Remove ${escapeHTML(item.name)} from cart"
+            title="Remove from cart"
+          >
+            ×
+          </button>
+
+        </li>
+      `;
+    }).join("");
+  }
+
+
+  // ==========================================
+  // 19. REMOVE A TREE FROM CART
+  // ==========================================
+
+  function removeFromCart(id) {
+    const item = cart.get(String(id));
+
+    if (!item) {
+      return;
+    }
+
+    cart.delete(String(id));
+
+    renderCart();
+
+    showToast(`${item.name} removed from your cart.`);
+  }
+
+
+  // ==========================================
+  // 20. OPEN PLANT DETAILS MODAL
+  // ==========================================
+
+  async function openPlantModal(plant, triggerElement) {
+    if (!plant) {
+      showToast("Tree details are not available.");
+      return;
+    }
+
+    const requestNumber = ++modalRequestNumber;
+
+    previousFocusedElement = triggerElement || document.activeElement;
+
+    activeModalPlant = plant;
+
+    modal.hidden = false;
+    document.body.classList.add("modal-open");
+
+    modalBody.innerHTML = `
+      <div class="modal-loading" role="status">
+        <span class="spinner" aria-hidden="true"></span>
+        <p>Loading ${escapeHTML(plant.name)} details...</p>
+      </div>
+    `;
+
+    modalClose.focus();
+
+    let details = plant;
+    let detailError = false;
+
+    // Plants with actual API IDs have their full details fetched.
+    if (!String(plant.id).startsWith("local-")) {
+      try {
+        const response = await fetchAPI(PLANT_DETAILS_API(plant.id));
+
+        if (requestNumber !== modalRequestNumber) {
+          return;
+        }
+
+        const rawPlant = extractPlantObject(response);
+
+        if (!rawPlant) {
+          throw new Error("Plant details were missing in the response.");
+        }
+
+        const normalizedDetails = normalizePlant(rawPlant, 0);
+
+        if (normalizedDetails) {
+          details = {
+            ...plant,
+            ...normalizedDetails,
+            original: rawPlant
+          };
+        }
+
+      } catch (error) {
+        if (requestNumber !== modalRequestNumber) {
+          return;
+        }
+
+        console.error("Plant details error:", error);
+
+        detailError = true;
+
+        // Keep the card data visible even if detail API fails.
+        details = plant;
+      }
+    }
+
+    if (!modal.hidden && requestNumber === modalRequestNumber) {
+      renderPlantModal(details, detailError);
+    }
+  }
+
+
+  // ==========================================
+  // 21. RENDER FULL PLANT DETAILS
+  // ==========================================
+
+  function renderPlantModal(plant, detailError = false) {
+    activeModalPlant = plant;
+
+    const raw = plant.original || {};
+
+    const details = [
+      [
+        "Scientific Name",
+        getText(raw.scientific_name ?? raw.scientificName ?? plant.scientificName)
+      ],
+      [
+        "Category",
+        getText(raw.category ?? raw.category_name ?? plant.category)
+      ],
+      [
+        "Sunlight",
+        getText(raw.sunlight ?? raw.light_requirements)
+      ],
+      [
+        "Water Needs",
+        getText(raw.water_needs ?? raw.waterNeeds)
+      ],
+      [
+        "Soil Type",
+        getText(raw.soil_type ?? raw.soilType)
+      ],
+      [
+        "Native Region",
+        getText(raw.native_region ?? raw.nativeRegion)
+      ],
+      [
+        "Planting Season",
+        getText(raw.planting_season ?? raw.plantingSeason)
+      ],
+      [
+        "Mature Height",
+        getText(raw.mature_height ?? raw.matureHeight)
+      ]
+    ].filter((item) => item[1]);
+
+    const detailRows = details.map(([label, value]) => {
+      return `
+        <dt>${escapeHTML(label)}</dt>
+        <dd>${escapeHTML(value)}</dd>
+      `;
+    }).join("");
+
+    const errorMessage = detailError
+      ? `
+        <p class="modal-error-note">
+          Full details could not be loaded. Showing the information available
+          from the tree card instead.
+        </p>
+      `
+      : "";
+
+    modalBody.innerHTML = `
+      <div class="modal-detail">
+
+        <img
+          class="modal-hero-image"
+          src="${escapeHTML(plant.image || FALLBACK_IMAGE)}"
+          alt="${escapeHTML(plant.name)}"
+          data-fallback="${escapeHTML(FALLBACK_IMAGE)}"
+        >
+
+        <h2 id="modal-title">
+          ${escapeHTML(plant.name)}
+        </h2>
+
+        <p>
+          ${escapeHTML(plant.description)}
+        </p>
+
+        <p class="modal-price">
+          ${formatMoney(plant.price)}
+        </p>
+
+        ${
+          details.length
+            ? `<dl>${detailRows}</dl>`
+            : ""
+        }
+
+        ${errorMessage}
+
+        <button
+          class="add-to-cart"
+          type="button"
+          data-modal-add="${escapeHTML(plant.id)}"
+        >
+          Add to Cart
+        </button>
+
+      </div>
+    `;
+
+    attachImageFallbacks(modalBody);
+  }
+
+
+  // ==========================================
+  // 22. CLOSE MODAL
+  // ==========================================
+
+  function closePlantModal() {
+    if (modal.hidden) {
+      return;
+    }
+
+    // Ignore any detail request that finishes after the modal closes.
+    modalRequestNumber += 1;
+
+    modal.hidden = true;
+
+    document.body.classList.remove("modal-open");
+
+    if (
+      previousFocusedElement &&
+      typeof previousFocusedElement.focus === "function"
+    ) {
+      previousFocusedElement.focus();
+    }
+
+    previousFocusedElement = null;
+    activeModalPlant = null;
+  }
+
+
+  // ==========================================
+  // 23. MOBILE NAVIGATION
+  // ==========================================
+
+  function setMenuOpen(isOpen) {
+    navigation.classList.toggle("is-open", isOpen);
+
+    menuToggle.setAttribute(
+      "aria-expanded",
+      String(isOpen)
+    );
+
+    menuToggle.setAttribute(
+      "aria-label",
+      isOpen ? "Close navigation menu" : "Open navigation menu"
+    );
+  }
+
+  menuToggle.addEventListener("click", function () {
+    const currentlyOpen =
+      menuToggle.getAttribute("aria-expanded") === "true";
+
+    setMenuOpen(!currentlyOpen);
+  });
+
+  navigation.querySelectorAll("a").forEach((link) => {
+    link.addEventListener("click", function () {
+      setMenuOpen(false);
+    });
+  });
+
+  window.addEventListener("resize", function () {
+    if (window.innerWidth > 850) {
+      setMenuOpen(false);
+    }
+  });
+
+
+  // ==========================================
+  // 24. CATEGORY CLICK EVENT
+  // ==========================================
+
+  categoryList.addEventListener("click", function (event) {
+    const button = event.target.closest("[data-category-id]");
+
+    if (!button) {
+      return;
+    }
+
+    const categoryId = button.dataset.categoryId || null;
+    const categoryName = button.dataset.categoryName || "All Trees";
+
+    loadPlants(categoryId, categoryName);
+  });
+
+
+  // ==========================================
+  // 25. RETRY CATEGORY LOADING
+  // ==========================================
+
+  retryCategories.addEventListener("click", function () {
+    loadCategories();
+  });
+
+
+  // ==========================================
+  // 26. TREE CARD BUTTON EVENTS
+  // ==========================================
+
+  plantGrid.addEventListener("click", function (event) {
+
+    // Add to cart button
+    const addButton = event.target.closest("[data-add-to-cart]");
+
+    if (addButton) {
+      const plant = findPlant(addButton.dataset.addToCart);
+
+      addToCart(plant);
+
+      return;
+    }
+
+
+    // Plant name button - open details modal
+    const detailsButton = event.target.closest("[data-plant-details]");
+
+    if (detailsButton) {
+      const plant = findPlant(detailsButton.dataset.plantDetails);
+
+      openPlantModal(plant, detailsButton);
+
+      return;
+    }
+
+
+    // Retry or show all trees
+    const actionButton = event.target.closest("[data-action]");
+
+    if (actionButton) {
+      const action = actionButton.dataset.action;
+
+      if (action === "retry-plants") {
+        loadPlants(
+          selectedCategoryId,
+          selectedCategoryName
+        );
+      }
+
+      if (action === "show-all-trees") {
+        loadPlants(null, "All Trees");
+      }
+    }
+  });
+
+
+  // ==========================================
+  // 27. REMOVE FROM CART EVENT
+  // ==========================================
+
+  cartList.addEventListener("click", function (event) {
+    const removeButton = event.target.closest("[data-remove-from-cart]");
+
+    if (!removeButton) {
+      return;
+    }
+
+    removeFromCart(removeButton.dataset.removeFromCart);
+  });
+
+
+  // ==========================================
+  // 28. MODAL EVENT LISTENERS
+  // ==========================================
+
+  modalClose.addEventListener("click", function () {
+    closePlantModal();
+  });
+
+
+  // Close modal when clicking outside the dialog
+  modal.addEventListener("click", function (event) {
+    if (event.target === modal) {
+      closePlantModal();
+    }
+  });
+
+
+  // Add the modal's tree to cart
+  modalBody.addEventListener("click", function (event) {
+    const button = event.target.closest("[data-modal-add]");
+
+    if (!button || !activeModalPlant) {
+      return;
+    }
+
+    addToCart(activeModalPlant);
+  });
+
+
+  // Keyboard support
+  document.addEventListener("keydown", function (event) {
+
+    if (event.key === "Escape") {
+      closePlantModal();
+      setMenuOpen(false);
+    }
+
+
+    // Keep keyboard focus inside the modal
+    if (event.key === "Tab" && !modal.hidden) {
+      const focusableElements = modal.querySelectorAll(
+        'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+
+      if (focusableElements.length === 0) {
+        return;
+      }
+
+      const firstElement = focusableElements[0];
+
+      const lastElement =
+        focusableElements[focusableElements.length - 1];
+
+      if (
+        event.shiftKey &&
+        document.activeElement === firstElement
+      ) {
+        event.preventDefault();
+        lastElement.focus();
+      } else if (
+        !event.shiftKey &&
+        document.activeElement === lastElement
+      ) {
+        event.preventDefault();
+        firstElement.focus();
+      }
+    }
+  });
+
+
+  // ==========================================
+  // 29. PLANT A TREE FORM
+  // ==========================================
+
+  pledgeForm.addEventListener("submit", function (event) {
+    event.preventDefault();
+
+    if (!pledgeForm.reportValidity()) {
+      return;
+    }
+
+    const formData = new FormData(pledgeForm);
+
+    const name = String(formData.get("name") || "").trim();
+
+    const numberOfTrees = Number(formData.get("trees"));
+
+    if (!name || !Number.isFinite(numberOfTrees) || numberOfTrees < 1) {
+      showToast("Please enter a valid name and tree quantity.");
+      return;
+    }
+
+    showToast(
+      `Thank you, ${name}! Your pledge for ${numberOfTrees} ${
+        numberOfTrees === 1 ? "tree" : "trees"
+      } has been recorded in this demo.`
+    );
+
+    pledgeForm.reset();
+  });
+
+
+  // ==========================================
+  // 30. INITIALIZE WEBSITE
+  // ==========================================
+
+  async function initializeWebsite() {
+
+    if (copyrightYear) {
+      copyrightYear.textContent = String(new Date().getFullYear());
+    }
+
+    // Initial cart state
+    renderCart();
+
+    // Load categories and tree catalogue simultaneously
+    await Promise.all([
+      loadCategories(),
+      loadPlants(null, "All Trees")
+    ]);
+  }
+
+
+  // Start the website
+  initializeWebsite();
+
+});
+
+</script>
 
 </body>
 </html>
