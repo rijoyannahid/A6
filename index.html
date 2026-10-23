@@ -199,19 +199,14 @@
 
 <script>
 
-    // ============================================
-// GREEN EARTH - COMPLETE VANILLA JAVASCRIPT
-// HTML + CSS + JavaScript
-// API: Programming Hero Plant API
-// ============================================
+    
 
 document.addEventListener("DOMContentLoaded", function () {
   "use strict";
 
-  // ==========================================
+ 
   // 1. API URLS
-  // ==========================================
-
+  
   const API_BASE = "https://openapi.programming-hero.com/api";
 
   const ALL_PLANTS_API = `${API_BASE}/plants`;
@@ -226,9 +221,9 @@ document.addEventListener("DOMContentLoaded", function () {
   const FALLBACK_IMAGE = "assets/about.png";
 
 
-  // ==========================================
+  
   // 2. HTML ELEMENTS
-  // ==========================================
+ 
 
   const categoryList = document.getElementById("category-list");
   const retryCategories = document.getElementById("retry-categories");
@@ -253,20 +248,19 @@ document.addEventListener("DOMContentLoaded", function () {
   const toast = document.getElementById("toast");
 
 
-  // ==========================================
+  
   // 3. GLOBAL VARIABLES
-  // ==========================================
+  
 
   let categories = [];
 
-  // Currently displayed plants
+ 
   let visiblePlants = [];
 
-  // Save loaded plants by ID for modal/cart access
+
   const plantCache = new Map();
 
-  // Cart structure:
-  // Map(plantId => { ...plant, quantity: 1 })
+  
   const cart = new Map();
 
   let selectedCategoryId = null;
@@ -280,9 +274,9 @@ document.addEventListener("DOMContentLoaded", function () {
   let activeModalPlant = null;
 
 
-  // ==========================================
+ 
   // 4. BASIC HELPER FUNCTIONS
-  // ==========================================
+  
 
   function escapeHTML(value) {
     return String(value ?? "").replace(/[&<>"']/g, function (character) {
@@ -378,9 +372,9 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
 
-  // ==========================================
+  
   // 5. API REQUEST FUNCTION
-  // ==========================================
+  
 
   async function fetchAPI(url) {
     const response = await fetch(url, {
@@ -414,15 +408,11 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
 
-  // ==========================================
+ 
   // 6. EXTRACT ARRAYS FROM API RESPONSE
-  // ==========================================
 
-  // Supports responses such as:
-  // { categories: [...] }
-  // { data: [...] }
-  // { data: { categories: [...] } }
-  // { plants: [...] }
+
+  
 
   function extractArray(response, possibleKeys) {
     if (Array.isArray(response)) {
@@ -523,9 +513,8 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
 
-  // ==========================================
   // 7. NORMALIZE CATEGORY DATA
-  // ==========================================
+
 
   function normalizeCategory(category, index) {
     const id = getId(
@@ -553,9 +542,9 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
 
-  // ==========================================
+  
   // 8. NORMALIZE PLANT DATA
-  // ==========================================
+ 
 
   function normalizePlant(plant, index) {
     if (!plant || typeof plant !== "object") {
@@ -637,9 +626,9 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
 
-  // ==========================================
+ 
   // 9. LOADING SPINNER
-  // ==========================================
+
 
   function showLoading(message = "Loading trees...") {
     plantGrid.setAttribute("aria-busy", "true");
@@ -655,9 +644,9 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
 
-  // ==========================================
+
   // 10. LOAD TREE CATEGORIES
-  // ==========================================
+  
 
   async function loadCategories() {
     categoryList.innerHTML = `
@@ -706,9 +695,9 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
 
-  // ==========================================
+  
   // 11. DISPLAY CATEGORY BUTTONS
-  // ==========================================
+  
 
   function renderCategories() {
     const allTreesButton = `
@@ -747,9 +736,9 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
 
-  // ==========================================
+  
   // 12. LOAD ALL TREES OR TREES BY CATEGORY
-  // ==========================================
+  
 
   async function loadPlants(categoryId = null, categoryName = "All Trees") {
     const requestNumber = ++plantRequestNumber;
@@ -831,9 +820,9 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
 
-  // ==========================================
+  
   // 13. DISPLAY TREE CARDS
-  // ==========================================
+
 
   function renderPlants(plants) {
     visiblePlants = plants;
@@ -925,9 +914,9 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
 
-  // ==========================================
+
   // 14. IMAGE ERROR FALLBACK
-  // ==========================================
+  
 
   function attachImageFallbacks(container) {
     container.querySelectorAll("img[data-fallback]").forEach((image) => {
@@ -944,9 +933,9 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
 
-  // ==========================================
+  
   // 15. FIND A PLANT BY ID
-  // ==========================================
+
 
   function findPlant(id) {
     const plantId = String(id);
@@ -971,9 +960,9 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
 
-  // ==========================================
+  
   // 16. TOAST MESSAGE
-  // ==========================================
+ 
 
   function showToast(message) {
     if (!toast) {
@@ -992,9 +981,9 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
 
-  // ==========================================
+
   // 17. ADD A TREE TO THE CART
-  // ==========================================
+
 
   function addToCart(plant) {
     if (!plant) {
@@ -1021,9 +1010,9 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
 
-  // ==========================================
+  
   // 18. DISPLAY CART ITEMS AND TOTAL
-  // ==========================================
+  
 
   function renderCart() {
     const items = Array.from(cart.values());
@@ -1088,9 +1077,9 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
 
-  // ==========================================
+
   // 19. REMOVE A TREE FROM CART
-  // ==========================================
+  
 
   function removeFromCart(id) {
     const item = cart.get(String(id));
@@ -1107,9 +1096,9 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
 
-  // ==========================================
+
   // 20. OPEN PLANT DETAILS MODAL
-  // ==========================================
+  
 
   async function openPlantModal(plant, triggerElement) {
     if (!plant) {
@@ -1183,9 +1172,9 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
 
-  // ==========================================
+
   // 21. RENDER FULL PLANT DETAILS
-  // ==========================================
+
 
   function renderPlantModal(plant, detailError = false) {
     activeModalPlant = plant;
@@ -1288,9 +1277,9 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
 
-  // ==========================================
+
   // 22. CLOSE MODAL
-  // ==========================================
+ 
 
   function closePlantModal() {
     if (modal.hidden) {
@@ -1316,9 +1305,9 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
 
-  // ==========================================
+
   // 23. MOBILE NAVIGATION
-  // ==========================================
+ 
 
   function setMenuOpen(isOpen) {
     navigation.classList.toggle("is-open", isOpen);
@@ -1354,9 +1343,8 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
 
-  // ==========================================
   // 24. CATEGORY CLICK EVENT
-  // ==========================================
+  
 
   categoryList.addEventListener("click", function (event) {
     const button = event.target.closest("[data-category-id]");
@@ -1372,18 +1360,18 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
 
-  // ==========================================
+  
   // 25. RETRY CATEGORY LOADING
-  // ==========================================
+  
 
   retryCategories.addEventListener("click", function () {
     loadCategories();
   });
 
 
-  // ==========================================
+
   // 26. TREE CARD BUTTON EVENTS
-  // ==========================================
+
 
   plantGrid.addEventListener("click", function (event) {
 
